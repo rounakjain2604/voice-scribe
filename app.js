@@ -267,10 +267,18 @@ class VoiceScribeApp {
     }
 
     generateSummary(content) {
-        // Simple sentence-based summary
+        // Split by sentence-ending punctuation (English and Hindi)
         const sentences = content.split(/[।.!?]+/).filter(s => s.trim());
 
-        // Group into categories (simple heuristic)
+        // If no clear sentences, treat the whole content as one point
+        if (sentences.length === 0) {
+            return {
+                'Key Points': [content.trim()],
+                'Details': []
+            };
+        }
+
+        // Group into categories
         const categories = {
             'Key Points': [],
             'Details': []
@@ -278,14 +286,26 @@ class VoiceScribeApp {
 
         sentences.forEach((sentence, i) => {
             const clean = sentence.trim();
-            if (clean.length > 10) {
-                if (i < 3 || clean.length > 50) {
+            if (clean.length > 0) {
+                // First 3 sentences or longer sentences go to Key Points
+                if (i < 3 || clean.length > 40) {
                     categories['Key Points'].push(clean);
                 } else {
                     categories['Details'].push(clean);
                 }
             }
         });
+
+        // If no key points but we have details, move them to key points
+        if (categories['Key Points'].length === 0 && categories['Details'].length > 0) {
+            categories['Key Points'] = categories['Details'];
+            categories['Details'] = [];
+        }
+
+        // If still nothing, use the raw content
+        if (categories['Key Points'].length === 0) {
+            categories['Key Points'] = [content.trim()];
+        }
 
         return categories;
     }
